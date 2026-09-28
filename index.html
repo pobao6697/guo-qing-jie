@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dr.Evers - 釜山秋日寻“7”焕颜之旅</title>
+    <!-- 引入截图库，方便玩家生成专属兑换卡 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        background: #111827;
+        color: #333;
+        overflow: hidden;
+      }
+
+      /* 游戏主容器 */
+      .app-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        max-width: 480px;
+        margin: 0 auto;
+        overflow: hidden;
+        background: #0f172a;
+      }
+
+      /* 震屏提示 */
+      .shake {
+        animation: screenShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+      }
+      @keyframes screenShake {
+        10%, 90% { transform: translate3d(-3px, 0, 0); }
+        20%, 80% { transform: translate3d(5px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+        40%, 60% { transform: translate3d(6px, 0, 0); }
+      }
+
+      /* ===== 1. 开场 Splash 屏 ===== */
+      .splash-screen {
+        position: absolute;
+        inset: 0;
+        z-index: 100;
+        background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 50%, #f472b6 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 30px;
+        text-align: center;
+        transition: opacity 0.8s ease, visibility 0.8s;
+      }
+
+      .splash-brand {
+        font-size: 2.8rem;
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: #be123c;
+        text-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
+        margin-bottom: 8px;
+      }
+
+      .splash-sub {
+        font-size: 1rem;
+        color: #881337;
+        font-weight: 600;
+        letter-spacing: 1px;
+        margin-bottom: 40px;
+      }
+
+      .start-btn {
+        border: none;
+        background: linear-gradient(135deg, #fb7185, #e11d48);
+        color: white;
+        padding: 16px 42px;
+        font-size: 1.15rem;
+        font-weight: 800;
+        border-radius: 30px;
+        box-shadow: 0 10px 25px rgba(225, 29, 72, 0.35);
+        cursor: pointer;
+        animation: pulseBtn 1.8s infinite alternate;
+      }
+      @keyframes pulseBtn {
+        0% { transform: scale(0.96); }
+        100% { transform: scale(1.04); }
+      }
+
+      /* ===== 2. 游戏场景页面 ===== */
+      .game-screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 顶部常驻 Header */
+      .header-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 65px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        z-index: 20;
+      }
+
+      .brand-badge {
+        font-size: 1.35rem;
+        font-weight: 900;
+        color: #e11d48;
+        letter-spacing: 1px;
+      }
+
+      .hud-info {
+        display: flex;
+        gap: 10px;
+      }
+
+      .hud-box {
+        background: #f1f5f9;
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #334155;
+      }
+      .hud-box strong {
+        color: #e11d48;
+        font-size: 1rem;
+      }
+
+      /* 釜山唯美海景画布区 */
+      .busan-canvas {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        margin-top: 65px;
+        /* 唯美釜山秋日海景插画背景 (暖金夕阳+海云台高楼+波光粼粼+秋天散步氛围) */
+        background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop') center/cover no-repeat;
+        overflow: hidden;
+      }
+
+      /* 蒙层柔光衬托唯美感 */
+      .busan-canvas::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(251, 146, 60, 0.2) 0%, rgba(244, 114, 182, 0.25) 100%);
+        pointer-events: none;
+      }
+
+      /* 伪装干扰数字与目标“7”的基类 */
+      .num-item {
+        position: absolute;
+        font-weight: 900;
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      /* 数字‘7’特殊识别样式 */
+      .target-7 {
+        color: rgba(255, 255, 255, 0.88);
+        text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      }
+
+      .target-7.found {
+        transform: scale(1.6) rotate(15deg);
+        color: #facc15 !important;
+        text-shadow: 0 0 15px #facc15;
+        pointer-events: none;
+        opacity: 0.9;
+      }
+
+      /* 右下角求助道具按钮 */
+      .share-help-btn {
+        position: absolute;
+        bottom: 20px;
+        right: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 2px solid #f43f5e;
+        color: #be123c;
+        padding: 10px 16px;
+        border-radius: 25px;
+        font-size: 0.85rem;
+        font-weight: 900;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        cursor: pointer;
+        z-index: 15;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* ===== 3. 通用弹窗与蒙层 ===== */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 80;
+        padding: 20px;
+      }
+
+      .modal-card {
+        width: 100%;
+        max-width: 380px;
+        background: white;
+        border-radius: 28px;
+        padding: 28px 20px;
+        text-align: center;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes popUp {
+        0% { transform: scale(0.8); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      .modal-title {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: #be123c;
+        margin-bottom: 8px;
+      }
+
+      .modal-desc {
+        font-size: 0.95rem;
+        color: #64748b;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+
+      .modal-btn {
+        border: none;
+        width: 100%;
+        padding: 14px 0;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: 800;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+
+      .btn-primary { background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; }
+      .btn-secondary { background: #f1f5f9; color: #475569; }
+
+      /* ===== 4. 奖品选择页面 ===== */
+      .prize-card {
+        max-height: 85vh;
+        overflow-y: auto;
+        text-align: left;
+      }
+
+      .prize-card .modal-title {
+        text-align: center;
+      }
+
+      .prize-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 15px 0 20px;
+      }
+
+      .prize-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .prize-item.active {
+        border-color: #f43f5e;
+        background: #fff1f2;
+      }
+
+      .prize-name {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .tag-hot {
+        background: #fef08a;
+        color: #854d0e;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 900;
+      }
+
+      .radio-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .prize-item.active .radio-circle {
+        border-color: #f43f5e;
+        background: #f43f5e;
+      }
+
+      .radio-circle::after {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: white;
+        display: none;
+      }
+
+      .prize-item.active .radio-circle::after {
+        display: block;
+      }
+
+      /* ===== 5. 最终兑换凭证卡片 ===== */
+      .final-card-wrap {
+        background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+        border: 3px solid #fda4af;
+        border-radius: 24px;
+        padding: 24px 18px;
+        text-align: center;
+      }
+
+      .card-brand {
+        font-size: 1.6rem;
+        font-weight: 900;
+        color: #be123c;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+      }
+
+      .card-subtitle {
+        font-size: 0.8rem;
+        color: #9f1239;
+        margin-bottom: 18px;
+      }
+
+      .selected-prize-box {
+        background: white;
+        border: 2px dashed #f43f5e;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 15px;
+      }
+
+      .prize-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+
+      .prize-val {
+        font-size: 1.25rem;
+        font-weight: 900;
+        color: #e11d48;
+      }
+
+      .code-val {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #0284c7;
+        margin-top: 8px;
+      }
+
+      .notice-text {
+        font-size: 0.85rem;
+        color: #475569;
+        line-height: 1.5;
+        margin-bottom: 20px;
+        font-weight: 600;
+      }
+
+      .particle-canvas {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 90;
+      }
+
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="app-container" id="appContainer">
+      <canvas class="particle-canvas" id="particleCanvas"></canvas>
+
+      <!-- 1. 开场 Splash 屏 -->
+      <div id="splashScreen" class="splash-screen">
+        <div class="splash-brand">Dr.Evers</div>
+        <div class="splash-sub">釜山秋日寻“7”焕颜之旅</div>
+        <button id="startBtn" class="start-btn" type="button">开启秋日旅程 🌸</button>
+      </div>
+
+      <!-- 2. 游戏界面 -->
+      <div class="game-screen">
+        <div class="header-bar">
+          <div class="brand-badge">Dr.Evers</div>
+          <div class="hud-info">
+            <div class="hud-box">⏱️ 倒计时 <strong id="timeLeft">20</strong>s</div>
+            <div class="hud-box">🎈 已找到 <strong id="foundCount">0</strong>/7</div>
+          </div>
+        </div>
+
+        <div id="busanCanvas" class="busan-canvas">
+          <button id="shareHelpBtn" class="share-help-btn" type="button">
+            🔍 微信求助（自动寻找1个）
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. 通关/复活蒙层弹窗 -->
+      <div id="statusModal" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div id="modalTitle" class="modal-title">闯关成功！🎉</div>
+          <div id="modalDesc" class="modal-desc">太棒啦！您已成功找出全部 7 个数字“7”！</div>
+          <button id="modalActionBtn" class="modal-btn btn-primary" type="button">查看奖品</button>
+        </div>
+      </div>
+
+      <!-- 4. 奖品选择弹窗 -->
+      <div id="prizeModal" class="modal-overlay hidden">
+        <div class="modal-card prize-card">
+          <div class="modal-title">太棒啦！</div>
+          <div style="text-align: center; color: #64748b; font-size: 0.9rem; font-weight: 700;">
+            请选择您的奖品 (限1项)
+          </div>
+
+          <div class="prize-list" id="prizeList">
+            <div class="prize-item active" data-name="水光针 2.5cc 1次">
+              <span class="prize-name">水光针 2.5cc 1次 <span class="tag-hot">🔥 人气爆款</span></span>
+              <div class="radio-circle"></div>
+            </div>
+            <div class="prize-item" data-name="韩版超声刀 100发 1次">
+              <span class="prize-name">韩版超声刀 100发 1次 <span class="tag-hot">✨ 推荐</span></span>
+              <div class="radio-circle"></div>
+            </div>
+            <div class="prize-item" data-name="身体 Inmode 1贴">
+              <span class="prize-name">身体 Inmode 1贴</span>
+              <div class="radio-circle"></div>
+            </div>
+            <div class="prize-item" data-name="美白皮秒镭射">
+              <span class="prize-name">美白皮秒镭射</span>
+              <div class="radio-circle"></div>
+            </div>
+            <div class="prize-item" data-name="腋下除毛 1次">
+              <span class="prize-name">腋下除毛 1次</span>
+              <div class="radio-circle"></div>
+            </div>
+            <div class="prize-item" data-name="双下巴溶脂针 12cc 1次">
+              <span class="prize-name">双下巴溶脂针 12cc 1次</span>
+              <div class="radio-circle"></div>
+            </div>
+            <div class="prize-item" data-name="瘦脸针 韩国产 1次">
+              <span class="prize-name">瘦脸针 韩国产 1次</span>
+              <div class="radio-circle"></div>
+            </div>
+          </div>
+
+          <button id="nextStepBtn" class="modal-btn btn-primary" type="button">下一步</button>
+        </div>
+      </div>
+
+      <!-- 5. 二次确认弹窗 -->
+      <div id="confirmModal" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-title">确认奖品选择</div>
+          <div class="modal-desc">
+            您已选择：<strong id="confirmPrizeName" style="color: #e11d48;">水光针 2.5cc 1次</strong><br/>
+            确认后无法修改哦~
+          </div>
+          <button id="finalConfirmBtn" class="modal-btn btn-primary" type="button">选择后无法更改哦</button>
+          <button id="cancelConfirmBtn" class="modal-btn btn-secondary" type="button">取消</button>
+        </div>
+      </div>
+
+      <!-- 6. 最终完成兑换卡片弹窗 -->
+      <div id="finalCardModal" class="modal-overlay hidden">
+        <div class="modal-card" style="background: transparent; padding: 0;">
+          <div id="captureArea" class="final-card-wrap">
+            <div class="card-brand">Dr.Evers</div>
+            <div class="card-subtitle">国庆专属·秋日焕颜赠礼</div>
+
+            <div class="selected-prize-box">
+              <div class="prize-label">恭喜您获得礼品</div>
+              <div class="prize-val" id="finalPrizeText">水光针 2.5cc 1次</div>
+              <div class="code-val" id="bookingCode">预约码: EVERS-2026-8891</div>
+            </div>
+
+            <div class="notice-text">
+              完成啦，截图后找客服预约吧~<br/>
+              预约成功后到店即可使用赠送的项目哦！
+            </div>
+          </div>
+
+          <button id="saveImgBtn" class="modal-btn btn-primary" style="margin-top: 15px;" type="button">📸 保存兑换卡到相册</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 游戏核心数据状态
+      let foundCount = 0;
+      let remainingTime = 20;
+      let timerId = null;
+      let selectedPrize = '水光针 2.5cc 1次';
+      let clickCountTime = 0;
+      let clickClicks = 0;
+
+      // 目标 7 的坐标及大小配置（7个隐蔽点）
+      const targetLocations = [
+        { left: '18%', top: '22%', size: '26px', opacity: 0.8 },
+        { left: '78%', top: '15%', size: '20px', opacity: 0.75 },
+        { left: '42%', top: '38%', size: '24px', opacity: 0.85 },
+        { left: '85%', top: '55%', size: '28px', opacity: 0.8 },
+        { left: '12%', top: '68%', size: '22px', opacity: 0.75 },
+        { left: '60%', top: '75%', size: '25px', opacity: 0.85 },
+        { left: '35%', top: '82%', size: '20px', opacity: 0.8 }
+      ];
+
+      // 干扰数字（1-9 非7）
+      const decoyNumbers = ['1', '2', '3', '4', '5', '6', '8', '9'];
+
+      const appContainer = document.getElementById('appContainer');
+      const splashScreen = document.getElementById('splashScreen');
+      const busanCanvas = document.getElementById('busanCanvas');
+      const timeLeftEl = document.getElementById('timeLeft');
+      const foundCountEl = document.getElementById('foundCount');
+
+      const statusModal = document.getElementById('statusModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalDesc = document.getElementById('modalDesc');
+      const modalActionBtn = document.getElementById('modalActionBtn');
+
+      const prizeModal = document.getElementById('prizeModal');
+      const confirmModal = document.getElementById('confirmModal');
+      const finalCardModal = document.getElementById('finalCardModal');
+      const confirmPrizeName = document.getElementById('confirmPrizeName');
+      const finalPrizeText = document.getElementById('finalPrizeText');
+      const bookingCode = document.getElementById('bookingCode');
+
+      // 金色粒子特效
+      const canvas = document.getElementById('particleCanvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      class Particle {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.color = '#facc15';
+          this.size = Math.random() * 6 + 3;
+          this.speedX = (Math.random() - 0.5) * 6;
+          this.speedY = (Math.random() - 0.5) * 6;
+          this.alpha = 1;
+        }
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          this.alpha -= 0.03;
+        }
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, this.alpha);
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function spawnGoldParticles(x, y) {
+        for (let i = 0; i < 12; i++) particles.push(new Particle(x, y));
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles = particles.filter(p => p.alpha > 0);
+        particles.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animateParticles);
+      }
+      animateParticles();
+
+      // 渲染数字到唯美海景画板
+      function renderNumbers() {
+        busanCanvas.querySelectorAll('.num-item').forEach(el => el.remove());
+
+        // 渲染 7 个目标数字‘7’
+        targetLocations.forEach((loc, index) => {
+          const el = document.createElement('div');
+          el.className = 'num-item target-7';
+          el.textContent = '7';
+          el.style.left = loc.left;
+          el.style.top = loc.top;
+          el.style.fontSize = loc.size;
+          el.style.opacity = loc.opacity;
+
+          el.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            if (el.classList.contains('found')) return;
+
+            el.classList.add('found');
+            foundCount++;
+            foundCountEl.textContent = String(foundCount);
+
+            const rect = el.getBoundingClientRect();
+            spawnGoldParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+            if (foundCount >= 7) {
+              gameSuccess();
+            }
+          });
+          busanCanvas.appendChild(el);
+        });
+
+        // 渲染 12 个干扰数字
+        for (let i = 0; i < 12; i++) {
+          const el = document.createElement('div');
+          el.className = 'num-item';
+          el.textContent = decoyNumbers[Math.floor(Math.random() * decoyNumbers.length)];
+          el.style.left = `${Math.floor(Math.random() * 80) + 10}%`;
+          el.style.top = `${Math.floor(Math.random() * 80) + 10}%`;
+          el.style.fontSize = `${Math.floor(Math.random() * 10) + 18}px`;
+          el.style.color = 'rgba(255,255,255,0.6)';
+          el.style.opacity = 0.6;
+          busanCanvas.appendChild(el);
+        }
+      }
+
+      // 防盲点乱戳盲扣机制
+      busanCanvas.addEventListener('pointerdown', () => {
+        const now = Date.now();
+        if (now - clickCountTime < 500) {
+          clickClicks++;
+          if (clickClicks >= 3) {
+            appContainer.classList.remove('shake');
+            void appContainer.offsetWidth;
+            appContainer.classList.add('shake');
+            clickClicks = 0;
+          }
+        } else {
+          clickClicks = 1;
+        }
+        clickCountTime = now;
+      });
+
+      // 开始游戏
+      document.getElementById('startBtn').addEventListener('click', () => {
+        splashScreen.style.opacity = '0';
+        setTimeout(() => splashScreen.classList.add('hidden'), 800);
+
+        foundCount = 0;
+        remainingTime = 20;
+        foundCountEl.textContent = '0';
+        timeLeftEl.textContent = '20';
+
+        renderNumbers();
+
+        if (timerId) clearInterval(timerId);
+        timerId = setInterval(() => {
+          remainingTime--;
+          timeLeftEl.textContent = String(remainingTime);
+          if (remainingTime <= 0) {
+            clearInterval(timerId);
+            if (foundCount < 7) handleTimeOut();
+          }
+        }, 1000);
+      });
+
+      // 微信求助：自动提示 1 个未找到的“7”
+      document.getElementById('shareHelpBtn').addEventListener('click', () => {
+        const unfound = busanCanvas.querySelectorAll('.target-7:not(.found)');
+        if (unfound.length > 0) {
+          const target = unfound[0];
+          target.dispatchEvent(new Event('pointerdown'));
+          alert('🔍 已微信求助好友！[Dr.Evers 放大镜] 已自动为您标记 1 个数字“7”！');
+        }
+      });
+
+      // 倒计时结束复活机制
+      function handleTimeOut() {
+        modalTitle.textContent = '就差一点点啦！';
+        modalDesc.textContent = `您已找到 ${foundCount}/7 个数字“7”，点击下方微信求助求助好友，即可直接解锁全部奖品！`;
+        modalActionBtn.textContent = '🔍 微信求助求助好友并通关';
+        modalActionBtn.onclick = () => {
+          statusModal.classList.add('hidden');
+          gameSuccess();
+        };
+        statusModal.classList.remove('hidden');
+      }
+
+      // 游戏成功通关
+      function gameSuccess() {
+        clearInterval(timerId);
+        modalTitle.textContent = '闯关成功！🎉';
+        modalDesc.textContent = '太棒啦！您已成功找出全部 7 个数字“7”！';
+        modalActionBtn.textContent = '查看奖品';
+        modalActionBtn.onclick = () => {
+          statusModal.classList.add('hidden');
+          prizeModal.classList.remove('hidden');
+        };
+        statusModal.classList.remove('hidden');
+      }
+
+      // 奖品列表单选逻辑
+      const prizeItems = document.querySelectorAll('.prize-item');
+      prizeItems.forEach(item => {
+        item.addEventListener('click', () => {
+          prizeItems.forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          selectedPrize = item.getAttribute('data-name');
+        });
+      });
+
+      // 点击“下一步”进入二次确认
+      document.getElementById('nextStepBtn').addEventListener('click', () => {
+        prizeModal.classList.add('hidden');
+        confirmPrizeName.textContent = selectedPrize;
+        confirmModal.classList.remove('hidden');
+      });
+
+      // 点击［选择后无法更改哦］进入最终页面
+      document.getElementById('finalConfirmBtn').addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+        finalPrizeText.textContent = selectedPrize;
+        bookingCode.textContent = `预约码: EVERS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+        finalCardModal.classList.remove('hidden');
+      });
+
+      // 点击［取消］返回奖品选择
+      document.getElementById('cancelConfirmBtn').addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+        prizeModal.classList.remove('hidden');
+      });
+
+      // 保存截图功能
+      document.getElementById('saveImgBtn').addEventListener('click', () => {
+        const area = document.getElementById('captureArea');
+        html2canvas(area).then(canvas => {
+          const link = document.createElement('a');
+          link.download = `DrEvers-预约卡.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+        });
+      });
+    </script>
+  </body>
+</html>
